@@ -83,7 +83,8 @@ init(N, W, PW, PD, DW, PWFailThreshold, PDFailThreshold,
              returnbody = ReturnBody,
              idx_type = IdxType}.
 
-%% Add a result from the vnode
+%% Add a result from the vnode 
+%% TODO check spec
 -spec add_result(vput_result(), putcore()) -> putcore().
 add_result({w, Idx, _ReqId}, PutCore = #putcore{results = Results,
                                                 num_w = NumW}) ->
@@ -91,12 +92,12 @@ add_result({w, Idx, _ReqId}, PutCore = #putcore{results = Results,
                     num_w = NumW + 1};
 add_result({dw, Idx, _ReqId}, PutCore = #putcore{results = Results,
                                                  num_dw = NumDW}) ->
-    num_pw(PutCore#putcore{results = [{Idx, {dw, undefined}} | Results],
-                    num_dw = NumDW + 1}, Idx);
+    num_pd(num_pw(PutCore#putcore{results = [{Idx, {dw, undefined}} | Results],
+                    num_dw = NumDW + 1}, Idx));
 add_result({dw, Idx, ResObj, _ReqId}, PutCore = #putcore{results = Results,
                                                          num_dw = NumDW}) ->
-    num_pw(PutCore#putcore{results = [{Idx, {dw, ResObj}} | Results],
-                    num_dw = NumDW + 1}, Idx);
+    num_pd(num_pw(PutCore#putcore{results = [{Idx, {dw, ResObj}} | Results],
+                    num_dw = NumDW + 1}, Idx));
 add_result({fail, Idx, _ReqId}, PutCore = #putcore{results = Results,
                                                    num_fail = NumFail}) ->
     PutCore#putcore{results = [{Idx, {error, undefined}} | Results],
@@ -228,10 +229,57 @@ num_pw(PutCore = #putcore{num_pw=NumPW, idx_type=IdxType}, Idx) ->
             PutCore
     end.
 
+%% @private Calculate number of physically diverse partitions in results
+count_physically_diverse(IdxType, Results) ->
+    DWrites = [Part || {Part, {dw, _}} <- Results ],
+    count_physically_diverse(IdxType, DWrites, []).
 
+count_physically_diverse(_IdxType, [], NodeAcc) ->
+    io:format("NodeAcc: ~p~n", [NodeAcc]),
+    UniqueNodes = lists:usort(NodeAcc),
+    io:format("UniqueNodes: ~p~n", [UniqueNodes]),
+    io:format("Final count: ~p~n", [length(UniqueNodes)]),
+    length(UniqueNodes);
+count_physically_diverse(IdxType, [DWPart | DWriteAcc], NodeAcc) ->
+    Nodes = [Node || {Part, _Type, Node} <- IdxType, Part == DWPart],
+    count_physically_diverse(IdxType, DWriteAcc, lists:flatten([Nodes | NodeAcc])).
+
+%% @private Return number of physically diverse partitions in results
+num_pd(PutCore = #putcore{idx_type=IdxType, results=Results}) ->
+    io:format("put_core num_pd~n"),
+    io:format("putcore: ~p~n", [PutCore]),
+    Cpd = count_physically_diverse(IdxType, Results),
+    io:format("count of pd nodes: ~p~n", [Cpd]),
+    PutCore#putcore{num_pd=Cpd}.
 
 -ifdef(TEST).
 %% simple sanity tests
+diversity_test_() ->
+    [
+        {"Diversity",
+            fun() ->
+                    ?assertEqual(1, count_physically_diverse(
+                                 [{1,primary,node1},
+                                  {2,primary,node2},
+                                  {3,fallback,node3}],
+                                 [{1, {dw, undefined}}])),
+                    ?assertEqual(2, count_physically_diverse(
+                                 [{1,primary,node1},
+                                  {2,primary,node2},
+                                  {3,fallback,node3}],
+                                 [{1, {dw, undefined}},
+                                  {3, {dw, undefined}}])),
+                    ?assertEqual(1, count_physically_diverse(
+                                 [{1,primary,node1},
+                                  {2,primary,node2},
+                                  {3,fallback,node3}],
+                                 [{3, {dw, undefined}},
+                                  {3, {dw, undefined}},
+                                  {1, w}])),
+                ok
+        end}
+    ].
+
 enough_test_() ->
     [
         {"Checking W",
