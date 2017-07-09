@@ -281,7 +281,6 @@ prepare(timeout, StateData0 = #state{from = From, robj = RObj,
                                      bad_coordinators = BadCoordinators}) ->
     {ok, DefaultProps} = application:get_env(riak_core, 
                                              default_bucket_props),
-    io:format("prepare~n"),
     BucketProps = riak_core_bucket:get_bucket(riak_object:bucket(RObj)),
     %% typed buckets never fall back to defaults
     Props = 
@@ -390,7 +389,6 @@ validate(timeout, StateData0 = #state{from = {raw, ReqId, _Pid},
                                       n=N, bucket_props = BucketProps,
                                       trace = Trace,
                                       preflist2 = Preflist2}) ->
-    io:format("validate~n"),
     Timeout = get_option(timeout, Options0, ?DEFAULT_TIMEOUT),
     PW0 = get_option(pw, Options0, default),
     PD0 = get_option(pd, Options0, default),
@@ -414,7 +412,6 @@ validate(timeout, StateData0 = #state{from = {raw, ReqId, _Pid},
     end,
 
     IdxType = [{Part, Type, Node} || {{Part, Node}, Type} <- Preflist2],
-    io:format("IdxType: ~n~p", [IdxType]),
     NumPrimaries = length([x || {_,primary} <- Preflist2]),
     NumVnodes = length(Preflist2),
     MinVnodes = lists:max([1, W, DW, PW]), % always need at least one vnode
