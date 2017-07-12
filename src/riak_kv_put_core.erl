@@ -220,7 +220,6 @@ is_primary_response(Idx, IdxType) ->
 
 %% @private Increment PW, if appropriate
 num_pw(PutCore = #putcore{num_pw=NumPW, idx_type=IdxType}, Idx) ->
-    io:format("put_core num_pw~n"),
     case is_primary_response(Idx, IdxType) of
         true ->
             PutCore#putcore{num_pw=NumPW+1};
@@ -229,18 +228,18 @@ num_pw(PutCore = #putcore{num_pw=NumPW, idx_type=IdxType}, Idx) ->
     end.
 
 %% @private Calculate number of physically diverse partitions in results
-%% TODO -spec count_physically_diverse( ) -> non_neg_integer().
+-spec count_physically_diverse(IDXType::idx_type(), [idxresult()]) -> non_neg_integer().
 count_physically_diverse(IdxType, Results) ->
     DWrites = [Part || {Part, {dw, _}} <- Results ],
     count_physically_diverse(IdxType, DWrites, []).
 
-%% TODO -spec count_physically_diverse( ) -> non_neg_integer().
+-spec count_physically_diverse(IDXType::idx_type(), [non_neg_integer()], [node()]) -> non_neg_integer().
 count_physically_diverse(_IdxType, [], NodeAcc) ->
     UniqueNodes = lists:usort(NodeAcc),
     length(UniqueNodes);
-count_physically_diverse(IdxType, [DWPart | DWriteAcc], NodeAcc) ->
-    Nodes = [Node || {Part, _Type, Node} <- IdxType, Part == DWPart],
-    count_physically_diverse(IdxType, DWriteAcc, lists:flatten([Nodes | NodeAcc])).
+count_physically_diverse(IdxType, [DWPart | DWRest], NodeAcc) ->
+    {DWPart, _Type, Node} = lists:keyfind(DWPart, 1, IdxType),
+    count_physically_diverse(IdxType, DWRest, [Node | NodeAcc]).
 
 %% @private Return number of physically diverse partitions in results
 -spec num_pd(putcore()) -> putcore().
