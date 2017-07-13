@@ -425,7 +425,7 @@ validate(timeout, StateData0 = #state{from = {raw, ReqId, _Pid},
             process_reply({error, {w_val_violation, W0}}, StateData0);
         DW =:= error ->
             process_reply({error, {dw_val_violation, DW0}}, StateData0);
-        (W > N) or (DW > N) or (PW > N) ->
+        (W > N) or (DW > N) or (PW > N) or (PD > N)->
             process_reply({error, {n_val_violation, N}}, StateData0);
         PW > NumPrimaries ->
             process_reply({error, {pw_val_unsatisfied, PW, NumPrimaries}}, StateData0);
