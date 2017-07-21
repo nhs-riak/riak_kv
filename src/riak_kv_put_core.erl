@@ -40,7 +40,7 @@
                  {error, notfound} |
                  {error, any()}.
 -type idxresult() :: {non_neg_integer(), result()}.
--type idx_type() :: [{non_neg_integer(), 'primary' | 'fallback', non_neg_integer()}].
+-type idx_type() :: [{non_neg_integer(), 'primary' | 'fallback', node()}].
 -record(putcore, {n :: pos_integer(),
                   w :: non_neg_integer(),
                   dw :: non_neg_integer(),
