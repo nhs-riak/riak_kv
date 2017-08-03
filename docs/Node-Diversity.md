@@ -14,12 +14,19 @@ If one node fails, then the fallback node may or may not be a physically diverse
 ## The Problem
 The problem starts when a second node fails. This means that pw=2 cannot be satisfied for all writes, as the preflist for some writes now contains a single primary node and two fallback nodes. In this case, since pw=2 has not been satisfied, the cluster begins to reject writes.
 
-This was seen in production when two nodes failed in quick succession due to a bad batch of write cache batteries, and where the standby cluster started silently rejecting writes from some of the replication traffic. This was only noticed when our reconciliation process kicked in and flagged up the discrepancies between the clusters.
+This was seen in production when two nodes failed in quick succession due to a bad batch of write cache batteries, and where the standby cluster started silently rejecting writes from some of the replication traffic. This was only noticed when our reconciliation process kicked in and flagged up the discrepancies between the clusters. This is not a problem for us as such, as we run dual sites with reconciliation and automated fail-over between them, but it would be easier and smoother for us if we could handle this scenario without having to do a site-switch.
 
-Since our clusters have 7-9 nodes, this seems unreasonable, as there are plenty of nodes to statisfy w=3, even if these need to be writes to fallback nodes, rather than primary nodes. We only want to ensure that writes occur on different physical nodes.
+Since our clusters have 7-9 nodes, rejecting writes seems unreasonable, as there are plenty of nodes to statisfy w=3, even if these need to be writes to fallback nodes, rather than primary nodes. We only want to ensure that writes occur on different physical nodes.
 
 ## The Solution
 The problem stems from attempting to use an option to achieve something the option was never originally intended to achieve. Therefore the solution was to build a new option which is meant to solve the exact issue, i.e. that of node diversity.
+
+## Implementation
+When riak receives a 'put', it starts up a [riak_kv_put_fsm](../src/riak_kv_put_fsm.erl) (finite state machine). This [prepares](../src/riak_kv_put_fsm.erl#L277) and then [validates](../src/riak_kv_put_fsm.erl#L386) the options, then calls any [precommit hooks](../src/riak_kv_put_fsm.erl#L501), before [executing put to the local vnode](../src/riak_kv_put_fsm.erl#L542) in the preflist, which becomes the co-ordinating node. This then [waits for the local vnode response](../src/riak_kv_put_fsm.erl#L564) before [executing the put request remotely](../src/riak_kv_put_fsm.erl#L598) on the two remaining nodes in the preflist.
+
+The fsm then [waits for the remote vnode responses](../src/riak_kv_put_fsm.erl#L628), and as it receives responses, it [adds these results](../src/riak_kv_put_core.erl#L88) and checks whether [enough](../src/riak_kv_put_core.erl#L111) results have been collected to satisfy the bucket properties such as _'dw'_ and _'pw'_. This is where we have added the [count of the number of results](../src/riak_kv_put_core.erl#L246) returned from different nodes.
+
+Once enough nodes have returned to work out whether or not the properties have been (or will not be) statisfied, the [response is returned](../src/riak_kv_put_fsm.erl#L766), [post commit hooks](../src/riak_kv_put_fsm.erl#L666) are called and the [fsm finishes](../src/riak_kv_put_fsm.erl#L683).
 
 ### What's in an option name?
 So of course the big question is what to call the option? _'pd'_ (physical diversity) was considered, but the option only provides node diversity and cannot guarantee physical diversity (see Limitations). _'nd'_ was considered but both 'n' and 'd' are already specific terms within Riak and may lead to confusion.
@@ -28,11 +35,8 @@ Terms such as _'node_diversity'_ sound like a boolean option, rather than expect
 
 Hence we have decided to call this option _'node_confirms'_,as this is the number of different nodes we require to confirm their write has been successful. We chose to break from the 'traditional' two letter options such as pw and dw as they are vnode based options, whereas this is a node based option, and it is also more descriptive.
 
-## Implementation
-The implementation is very straight forward. We wait for sufficient _'dw'_ results to come in from different nodes that satisfy the _'node_confirms'_. This is done by adding the node name for each write to the tuple passed into the counting mechanism used to count _'pw'_ results, and extending that mechanism to count the different nodes that have responded.
-
 ## Testing
-Testing is done by adding unit tests for the count mechanisms, and by creating a riak_test that does the following:
+Testing is done by adding unit tests for the count mechanisms, and by creating a [riak_test](https://github.com/ramensen/riak_test/blob/rs-physical-promises/tests/node_confirms_vs_pw.erl) that does the following:
 * Start a 5 node cluster
 * Get a preflist for a key
 * Stop 2 primary nodes for that key
