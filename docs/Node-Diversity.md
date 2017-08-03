@@ -12,9 +12,9 @@ Obviously, one of the useful features of a distributed database is that this dat
 If one node fails, then the fallback node may or may not be a physically diverse node, but since we wait until pw=2 is satisfied, we know it will write to two diverse nodes.
 
 ## The Problem
-The problem starts when a second node fails. This means that pw=2 cannot be satisfied, as the preflist for some writes now contains a single primary node and two fallback nodes. At this point if pw=2 has been satisfied the cluster begins to reject writes where the preflist contains only one primary node.
+The problem starts when a second node fails. This means that pw=2 cannot be satisfied for all writes, as the preflist for some writes now contains a single primary node and two fallback nodes. In this case, since pw=2 has not been satisfied, the cluster begins to reject writes.
 
-This was seen in production when two nodes failed in quick succession due to a bad batch of write cache batteries, and where the standby cluster started silently rejecting writes from some of the replication traffic, which was only noticed when our reconciliation process kicked in and flagged up the discrepancies between the clusters.
+This was seen in production when two nodes failed in quick succession due to a bad batch of write cache batteries, and where the standby cluster started silently rejecting writes from some of the replication traffic. This was only noticed when our reconciliation process kicked in and flagged up the discrepancies between the clusters.
 
 Since our clusters have 7-9 nodes, this seems unreasonable, as there are plenty of nodes to statisfy w=3, even if these need to be writes to fallback nodes, rather than primary nodes. We only want to ensure that writes occur on different physical nodes.
 
