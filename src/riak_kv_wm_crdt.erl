@@ -135,7 +135,7 @@
           rw,
           pr,
           pw,
-          pd,
+          node_confirms,
           basic_quorum,
           notfound_ok,
           include_context,
@@ -216,7 +216,7 @@ malformed_rw_params(RD, Ctx) ->
                        {#ctx.w,  "w",  "default"},
                        {#ctx.dw, "dw", "default"},
                        {#ctx.pw, "pw", "default"},
-                       {#ctx.pd, "pd", "default"},
+                       {#ctx.node_confirms, "node_confirms", "default"},
                        {#ctx.pr, "pr", "default"}]),
     Res1 = lists:foldl(fun malformed_boolean_param/2,
                        Res,
@@ -480,7 +480,7 @@ handle_common_error(Reason, RD, Ctx) ->
                               Ctx};
         {n_val_violation, N} ->
             halt_with_message(400,
-                              "Specified w/dw/pw/pd values invalid for bucket n "
+                              "Specified w/dw/pw/node_confirms values invalid for bucket n "
                               "value of ~p~n",[N], RD, Ctx);
         {r_val_unsatisfied, Requested, Returned} ->
             halt_with_message(503, "R-value unsatisfied: ~p/~p~n",
@@ -494,8 +494,8 @@ handle_common_error(Reason, RD, Ctx) ->
         {pw_val_unsatisfied, Requested, Returned} ->
             halt_with_message(503, "PW-value unsatisfied: ~p/~p~n",
                               [Returned, Requested], RD, Ctx);
-        {pd_val_unsatisfied, Requested, Returned} ->
-            halt_with_message(503, "PD-value unsatisfied: ~p/~p~n",
+        {node_confirms_val_unsatisfied, Requested, Returned} ->
+            halt_with_message(503, "node_confirms-value unsatisfied: ~p/~p~n",
                               [Returned, Requested], RD, Ctx);
         failed ->
             halt_with_message(412, "", RD, Ctx);
@@ -538,7 +538,7 @@ make_options(Ctx) ->
                {rw, Ctx#ctx.rw},
                {pr, Ctx#ctx.pr},
                {pw, Ctx#ctx.pw},
-               {pd, Ctx#ctx.pd},
+               {node_confirms, Ctx#ctx.node_confirms},
                {basic_quorum, Ctx#ctx.basic_quorum},
                {notfound_ok, Ctx#ctx.notfound_ok},
                {timeout, Ctx#ctx.timeout},

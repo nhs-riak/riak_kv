@@ -723,12 +723,12 @@ get_fsm(#msg{from = {kv_vnode, Idx, _}, c = {r, Result, Idx, _ReqId}},
 put_fsm_proc(ReqId, #params{n = N, w = W, dw = DW}) ->
     AllowMult = true,
     ReturnBody = false,
-    PD = 0,
-    PDfailthreshold = N-PD+1,
-    PutCore = riak_kv_put_core:init(N, W, DW, PD,
+    NodeConfirms = 0,
+    NodeConfirmsfailthreshold = N-NodeConfirms+1,
+    PutCore = riak_kv_put_core:init(N, W, DW, NodeConfirms,
                                     DW, %% SLF hack
                                     N-W+1,   % cannot ever get W replies
-                                    PDfailthreshold,
+                                    NodeConfirmsfailthreshold,
                                     N-DW+1,  % cannot ever get DW replies
                                     AllowMult,
                                     ReturnBody,
