@@ -287,18 +287,7 @@ dep_apps(Test, Extra) ->
 %% see dep_apps/2
 -spec do_dep_apps(load | start | stop, [ atom() | fun() ]) -> [ any() ].
 do_dep_apps(start, Apps) ->
-    lists:foldl(fun do_dep_apps_fun/2,%% fun(A, Acc) when is_atom(A) ->
-                %%     case include_app_phase(start, A) of
-                %%         true ->
-                %%     	{ok, Started} = start_app_and_deps(A, Acc),
-                %%             Started;
-                %%         _ ->
-                %%             Acc
-                %%     end;
-                %% (F, Acc) ->
-                %%    F(start),
-                %%    Acc
-                %% end,
+    lists:foldl(fun do_dep_apps_fun/2,
                 [], Apps);
 do_dep_apps(LoadStop, Apps) ->
     lists:map(fun(A) when is_atom(A) ->
@@ -374,7 +363,7 @@ guess_deps_dir() ->
             case filelib:is_dir("deps") of
                 true ->
                     %% probably a root checkout
-                    "deps";
+                    "deps/";
                 false ->
                     %% probably part of an applications deps
                     "../"
@@ -383,7 +372,7 @@ guess_deps_dir() ->
             %% probably running in .eunit
             case filelib:is_dir("../deps") of
                 true ->
-                    "../deps";
+                    "../deps/";
                 false ->
                     %% maybe we're in a deps/* situation, worse case tests
                     %% fail, which is what they did before this hack
