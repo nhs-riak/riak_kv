@@ -343,13 +343,47 @@ maybe_start_aaecontroller(active, State=#state{mod=Mod,
     StoreHead = app_helper:get_env(riak_kv, tictacaae_storeheads),
     ObjSplitFun = riak_object:aae_from_object_binary(StoreHead),
 
+    LeveledOpts = aae_keystore:store_generate_backendoptions(),
+    Compression = app_helper:get_env(riak_kv, tictacaae_backendcompression),
+    BackendLogLevel =
+        case app_helper:get_env(riak_kv, tictacaae_backendloglevel) of
+            warning ->
+                % Leveled used warn, but future releases wil use logger
+                % based logging, where warning is used, so future proofing
+                % configuration option here.
+                % TODO: Case statement not required in 3.4
+                warn;
+            Other ->
+                Other
+            end,
+    DatabaseID =
+        65536 + riak_kv_leveled_backend:generate_partition_identity(Partition),
+    UpdLeveledOpts =
+        aae_keystore:store_setbackendoption(
+            database_id,
+            DatabaseID,
+            aae_keystore:store_setbackendoption(
+                compression_method,
+                Compression,
+                aae_keystore:store_setbackendoption(
+                    log_level,
+                    BackendLogLevel,
+                    LeveledOpts)
+            )
+        ),
+    AAELogLevels = riak_kv_tictacaae_repairs:aae_loglevels(),
+
     {ok, AAECntrl} = 
-        aae_controller:aae_start(KeyStoreType, 
-                                    IsEmpty, 
-                                    {RW, RD}, 
-                                    Preflists, 
-                                    RootPath, 
-                                    ObjSplitFun),
+        aae_controller:aae_start(
+            KeyStoreType, 
+            IsEmpty, 
+            {RW, RD}, 
+            Preflists, 
+            RootPath, 
+            ObjSplitFun,
+            AAELogLevels,
+            UpdLeveledOpts
+        ),
     ?LOG_INFO("AAE Controller started with pid=~w", [AAECntrl]),
     
     InitD = erlang:phash2(Partition, 256),
@@ -358,10 +392,10 @@ maybe_start_aaecontroller(active, State=#state{mod=Mod,
     % the points wrapping every 256 vnodes (assuming coordinated restart)    
     FirstRebuildDelay = RTick + ((RTick div 256) * InitD),
     FirstExchangeDelay = XTick + ((XTick div 256) * InitD),
-    riak_core_vnode:send_command_after(FirstRebuildDelay, 
-                                        tictacaae_rebuildpoke),
-    riak_core_vnode:send_command_after(FirstExchangeDelay, 
-                                        tictacaae_exchangepoke),
+    riak_core_vnode:send_command_after(
+        FirstRebuildDelay, tictacaae_rebuildpoke),
+    riak_core_vnode:send_command_after(
+        FirstExchangeDelay,  tictacaae_exchangepoke),
     
     InitalStep =
         case StepInitialTick of

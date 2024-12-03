@@ -129,21 +129,21 @@
 ]}.
 
 %% @doc Minimum Rebuild Wait
-%% The minimum number of hours to wait between rebuilds.  Default value is 2 
+%% The minimum number of hours to wait between rebuilds.  Default value is 12 
 %% weeks
 {mapping, "tictacaae_rebuildwait", "riak_kv.tictacaae_rebuildwait", [
   {datatype, integer},
-  {default, 336}
+  {default, 2016}
 ]}.
 
 %% @doc Maximum Rebuild Delay
 %% The number of seconds which represents the length of the period in which the
 %% next rebuild will be scheduled.  So if all vnodes are scheduled to rebuild 
 %% at the same time, they will actually rebuild randomly between 0 an this 
-%% value (in seconds) after the rebuild time. Default value is 4 days
+%% value (in seconds) after the rebuild time. Default value is 30 days
 {mapping, "tictacaae_rebuilddelay", "riak_kv.tictacaae_rebuilddelay", [
   {datatype, integer},
-  {default, 345600}
+  {default, 2592000}
 ]}.
 
 %% @doc Store heads in parallel key stores
@@ -256,6 +256,35 @@
   hidden
 ]}.
 
+%% @doc Tictacaae - change log level of parallel keystore
+%% Backend logging within leveled is relatively verbose, so in some cases
+%% there may be a preference of running leveled at warning not info.  This will
+%% only change logging in parallel-mode aae backends, not of leveled when
+%% running as a vnode backend
+{mapping, "tictacaae_backendloglevel", "riak_kv.tictacaae_backendloglevel", [
+  {datatype, {enum, [debug, info, warning]}},
+  {default, info}
+]}.
+
+%% @doc Tictacaae - change log level of tictacaae
+%% Set the log level for each aae_controller, and also for aae exchanges.  It
+%% is strongly recommended to keep this at info.
+{mapping, "tictacaae_loglevel", "riak_kv.tictacaae_loglevel", [
+  {datatype, {enum, [info, warning]}},
+  {default, info},
+  hidden
+]}.
+
+%% @doc Tictacaae - change compression method of parallel keystore
+%% Better performance is expected when using the NIF-based zstd compression. 
+%% Actual compression achieved is similar to native (zlib).  Native will
+%% compress using the built-in compression option for Erlang term_to_binary.
+%% This will only change compression in parallel-mode aae backends, not of
+%% leveled when running as a vnode backend
+{mapping, "tictacaae_backendcompression", "riak_kv.tictacaae_backendcompression", [
+  {datatype, {enum, [native, zstd]}},
+  {default, native}
+]}.
 
 %% @doc Pool Strategy - should a single node_worker_pool or multiple pools be
 %% used for queueing potentially longer-running "background" queries
