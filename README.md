@@ -1,7 +1,6 @@
 # Riak KV
 
-[![Build Status](https://github.com/basho/riak_kv/actions/workflows/erlang.yml/badge.svg?branch=develop)](https://github.com/basho/riak_kv/actions)
-
+![Riak KV OpenRiak Status](https://github.com/OpenRiak/riak_kv/actions/workflows/erlang.yml/badge.svg?branch=openriak-3.4)
 
 ## Overview
 

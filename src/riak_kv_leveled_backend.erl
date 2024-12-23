@@ -37,9 +37,9 @@
          callback/3]).
 
 %% Extended KV Backend API
--export([head/3,
-            fold_heads/4,
-            return_self/1]).
+-export([head/3, fold_heads/4, return_self/1]).
+
+-export([generate_partition_identity/1]).
 
 -include("riak_kv_index.hrl").
 

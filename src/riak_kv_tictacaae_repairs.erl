@@ -22,7 +22,7 @@
 %% @doc Various functions that are useful for repairing entropy via tictac aae
 -module(riak_kv_tictacaae_repairs).
 
--export([prompt_tictac_exchange/7, log_tictac_result/4]).
+-export([prompt_tictac_exchange/7, log_tictac_result/4, aae_loglevels/0]).
 
 -include_lib("kernel/include/logger.hrl").
 
@@ -49,6 +49,19 @@
 %% Public API
 %% ===================================================================
 
+-spec aae_loglevels() -> aae_util:log_levels().
+aae_loglevels() ->
+    case app_helper:get_env(riak_kv, tictacaae_loglevel) of
+        warning ->
+            % Peculiarity of tictacaae logging, is that as list of levels
+            % at which logging is required is passed in, not just the log
+            % level.  Note also use of warn not warning.
+            % TODO: warn -> warning in 3.4
+            % TODO: should fix the log_levels not log_level issue too
+            [warn, error, critical];
+        info ->
+            [info, warn, error, critical]
+    end.
 
 -spec prompt_tictac_exchange({riak_core_ring:partition_id(), node()},
                         {riak_core_ring:partition_id(), node()},
@@ -83,7 +96,9 @@ prompt_tictac_exchange(LocalVnode, RemoteVnode, IndexN,
         [{scan_timeout, ScanTimeout},
             {transition_pause_ms, ExchangePause},
             {purpose, kv_aae},
-            {max_results, MaxResults}],
+            {max_results, MaxResults},
+            {log_levels, aae_loglevels()}
+        ],
     
     BlueList = 
         [{riak_kv_vnode:aae_send(LocalVnode), [IndexN]}],
