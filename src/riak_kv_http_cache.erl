@@ -12,7 +12,12 @@
 
 -define(SERVER, ?MODULE).
 
--record(st, {ts, stats = []}).
+-record(st,
+    {
+        ts :: undefined|erlang:timestamp(),
+        stats = []
+    }
+).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -40,14 +45,17 @@ code_change(_, S, _) ->
     {ok, S}.
 
 check_cache(#st{ts = undefined} = S) ->
-    S#st{ts = os:timestamp(), stats = do_get_stats()};
+    Stats = do_get_stats(),
+    S#st{ts = os:timestamp(), stats = Stats};
 check_cache(#st{ts = Then} = S) ->
+    CacheTime = application:get_env(riak_kv, http_stats_cache_seconds, 1),
     Now = os:timestamp(),
-    case timer:now_diff(Now, Then) < 1000000 of
-	true ->
-	    S;
-	false ->
-	    S#st{ts = Now, stats = do_get_stats()}
+    case timer:now_diff(Now, Then) < (CacheTime * 1000000) of
+        true ->
+            S;
+        false ->
+            Stats = do_get_stats(),
+            S#st{ts = os:timestamp(), stats = Stats}
     end.
 
 do_get_stats() ->

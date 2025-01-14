@@ -969,7 +969,6 @@ bc_stats(Pfx) ->
                           {sys_global_heaps_size, ?MODULE, value, [deprecated]},
                           {sys_heap_type, erlang, system_info, [heap_type]},
                           {sys_logical_processors, erlang, system_info, [logical_processors]},
-                          {sys_monitor_count, riak_kv_stat_bc, sys_monitor_count, []},
                           {sys_otp_release, riak_kv_stat_bc, otp_release, []},
                           {sys_port_count, erlang, system_info, [port_count]},
                           {sys_process_count, erlang, system_info, [process_count]},
