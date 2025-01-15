@@ -1,7 +1,7 @@
 -module(riak_kv_http_cache).
 
 -export([start_link/0,
-	 get_stats/0]).
+	 get_stats/1]).
 
 -export([init/1,
 	 handle_call/3,
@@ -10,8 +10,6 @@
 	 terminate/2,
 	 code_change/3]).
 
--define(SERVER, ?MODULE).
-
 -record(st,
     {
         ts :: undefined|erlang:timestamp(),
@@ -19,11 +17,12 @@
     }
 ).
 
+
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-get_stats() ->
-    gen_server:call(?MODULE, get_stats).
+get_stats(Timeout) ->
+    gen_server:call(?MODULE, get_stats, Timeout).
 
 init(_) ->
     {ok, #st{}}.
@@ -45,7 +44,7 @@ code_change(_, S, _) ->
     {ok, S}.
 
 check_cache(#st{ts = undefined} = S) ->
-    Stats = do_get_stats(),
+    Stats = riak_kv_status:get_stats(web),
     S#st{ts = os:timestamp(), stats = Stats};
 check_cache(#st{ts = Then} = S) ->
     CacheTime = application:get_env(riak_kv, http_stats_cache_seconds, 1),
@@ -54,9 +53,6 @@ check_cache(#st{ts = Then} = S) ->
         true ->
             S;
         false ->
-            Stats = do_get_stats(),
+            Stats = riak_kv_status:get_stats(web),
             S#st{ts = os:timestamp(), stats = Stats}
     end.
-
-do_get_stats() ->
-    riak_kv_wm_stats:get_stats().
