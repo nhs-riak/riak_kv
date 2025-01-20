@@ -34,7 +34,7 @@
          pretty_print/2
         ]).
 
--define(TIMEOUT, 30000).
+-define(TIMEOUT, 30000). %% In milliseconds
 
 -include_lib("webmachine/include/webmachine.hrl").
 -include("riak_kv_wm_raw.hrl").
@@ -87,7 +87,8 @@ malformed_request(RD, Ctx) ->
                     {true,
                         wrq:append_to_resp_body(
                             io_lib:format(
-                                "Bad timeout value ~0p",
+                                "Bad timeout value ~0p "
+                                "expected milliseconds > 0",
                                 [TimeoutStr]
                             ),
                         wrq:set_resp_header(?HEAD_CTYPE, "text/plain", RD)),
@@ -130,6 +131,10 @@ pretty_print(RD, Ctx) ->
         {{halt, RepsonseCode}, UpdRD, UpdCtx} ->
             {{halt, RepsonseCode}, UpdRD, UpdCtx};
         {Json, UpdRD, UpdCtx} ->
-            {json_pp:print(Json), UpdRD, UpdCtx}
+            {
+                json_pp:print(binary_to_list(list_to_binary(Json))),
+                UpdRD,
+                UpdCtx
+            }
     end.
 
