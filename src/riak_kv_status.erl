@@ -99,6 +99,10 @@ aliases() ->
             fun(Alias, Entry, DP, Acc) -> [{Entry, {DP, Alias}}|Acc] end,
             []
         ),
+        %% It is assumed that prefix_foldl/3 will return an ordered list of
+        %% entries - and that ordering will be used for efficiency below.
+        %% Note if unordered, stats will still be produced, but requiring more
+        %% calls to exometer:get_value/2.
     case AllStats of
         [] ->
             [];
